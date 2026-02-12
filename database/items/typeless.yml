@@ -1,0 +1,25 @@
+#
+code       : typeless
+parent_code:
+
+#
+name       : Typeless
+name_alias :
+name_others: []
+
+#
+category: SOFTWARE
+type    : SOFTWARE
+owner   : FOREIGN
+
+#
+website    : https://www.typeless.com
+description: |
+  [[typeless]] 是由中國人創立、位於美國加州開發的 AI 語音轉錄文字軟體。其蒐集過多使用者資料、內建螢幕截圖權限，並與宣稱的「零資料保留」不符，且公司介紹僅輕描淡寫表示創辦人是「史丹佛校友」。
+# source: https://x.com/medmuspg/status/2021198792524169650
+
+#
+information:
+  - invasion     : FUNDED
+    description: |
+      [[typeless]] 創辦人是中國商人黃松，該軟體曾穫中國 [[zhen-fund]] 投資。

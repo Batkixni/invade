@@ -1,0 +1,24 @@
+#
+code       : zhen-fund
+parent_code:
+
+#
+name       : 真格基金
+name_alias : ZhenFund
+name_others: [北京真格天成投資管理有限公司]
+
+#
+category: FINANCE
+type    : COMPANY
+owner   : CHINESE
+
+#
+website    : https://www.zhenfund.com
+description: |
+  [[zhen-fund]] 是中國北京的一間創業投資公司，投資對象包括《小紅書》。
+
+#
+information:
+  - invasion     : FUNDED
+    description: |
+      [[zhen-fund]] 的創辦人是中國商人徐小平、王強，並與 [[sequoia-china]] 聯合創立。
