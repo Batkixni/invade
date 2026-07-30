@@ -1,0 +1,682 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import ScoreBadge from "@/components/ui/ScoreBadge";
+import { getAllItems } from "@/lib/db/queries";
+import { CATEGORY_MAP, OWNER_MAP, translateCategory } from "@/lib/utils";
+
+export const prerender = true;
+
+const items = await getAllItems();
+
+const categories = [...new Set(items.map((i) => i.category))].sort();
+
+// Shuffle / select items for the scrolling capsule marquee
+const marqueeItems = [...items].sort(() => 0.5 - Math.random()).slice(0, 24);
+// Duplicate for seamless infinite loop
+const doubleMarquee = [...marqueeItems, ...marqueeItems];
+
+const itemsData = items.map((i) => ({
+    c: i.code,
+    n: i.name,
+    a: i.nameAlias,
+    t: i.type,
+    ct: i.category,
+    o: i.owner,
+    s: i.score,
+    no: i.nameOthers.map((x) => x.name),
+}));
+---
+
+<Layout
+    title="invade <taiwan>"
+    description="記載與中共政府有關的企業、團體與服務還有侵略性行為（例如：言論審查、侵害人權）。"
+>
+    <!-- ASCII Terminal Hero Section -->
+    <section
+        class="relative bg-[#111114] border-b border-zinc-800 pt-10 pb-12 font-mono"
+    >
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <!-- Top ASCII System Status Header -->
+            <div
+                class="flex items-center justify-between border-b border-zinc-800 pb-4 mb-8 text-xs text-zinc-400"
+            >
+                <div class="flex items-center gap-2">
+                    <span class="text-rose-500 font-bold">[!]</span>
+                    <span class="text-zinc-200 font-bold tracking-wider"
+                        >invade &lt;taiwan&gt;</span
+                    >
+                </div>
+                <div class="flex items-center gap-4 text-[11px] text-zinc-500">
+                    <span>[MODE: ASCII_TERMINAL]</span>
+                    <span class="text-emerald-500 font-medium"
+                        >[STATUS: 200_OK]</span
+                    >
+                </div>
+            </div>
+
+            <!-- Hero ASCII Banner Box -->
+            <div class="mx-auto max-w-4xl text-center">
+                <pre
+                    class="inline-block text-left text-[10px] sm:text-xs font-mono leading-tight text-zinc-300 select-none overflow-x-auto max-w-full">
++===================================================================+
+|  ___ _  ___   ___  ___  ___    &lt; T A I W A N &gt;                    |
+| |_ _| \ | \ \ / / _ \| \ \ / /    -----------------------------   |
+|  | ||  \| |\ V / /_\ \ |\ V /     CHINA INVASION DIRECTORY DB     |
+| |___|_|\__| \_/ /_/ \_\_| \_/     OPEN SOURCE INTELLIGENCE        |
++===================================================================+
+        </pre>
+<p class="mt-4 text-xs sm:text-sm text-zinc-400 leading-relaxed max-w-2xl mx-auto font-mono">
+  &gt; &#35352;&#36617;&#33287;&#20013;&#20849;&#25919;&#24220;&#26377;&#38364;&#30340;&#20225;&#26989;&#12289;&#22296;&#39636;&#33287;&#26381;&#21209;&#36996;&#26377;&#20405;&#30053;&#24615;&#34892;&#28858;&#65288;&#20363;&#22914;&#65306;&#35328;&#35542;&#23529;&#26597;&#12289;&#20405;&#23475;&#20154;&#27402;&#65289;&#12290;
+</p>
+
+<!-- &#35413;&#20998;&#27231;&#21046;&#35498;&#26126;&#26041;&#22602; (Scoring Mechanism Explanation Block) -->
+<div class="mt-8 mx-auto max-w-4xl border border-zinc-800 bg-[#16161a] p-5 text-left font-mono">
+  <h3 class="text-xs font-bold text-zinc-200 uppercase tracking-wider mb-2 flex items-center gap-2">
+    <span>+ &#35413;&#20998;&#27231;&#21046;&#35498;&#26126;</span>
+  </h3>
+  <p class="text-xs text-zinc-400 mb-4 leading-relaxed">
+    &#20998;&#25976;&#28858; <span class="text-zinc-100 font-bold">[1 ~ 10 &#20998;]</span>&#65292;&#35336;&#31639;&#20197;&#19979;&#22235;&#20491;&#21205;&#24907;&#25351;&#27161;&#65292;<span class="text-zinc-100 font-bold">&#28961;&#26781;&#20214;&#36914;&#20301;&#19988;&#32317;&#20998;&#26368;&#39640;&#19981;&#36229;&#36942; 10 &#20998;</span>&#65288;&#26368;&#39640; 10.0 &#20998;&#21046;&#65289;&#65306;
+  </p>
+  <div class="grid gap-3 sm:grid-cols-2 text-xs text-zinc-300">
+    <div class="border border-zinc-800/80 bg-[#0e0e11] p-3">
+      <span class="text-zinc-100 font-bold block mb-1">&#19968;&#12289; &#36039;&#26412;&#27402;&#23660;&#24615; (&#26368;&#39640; 4.0 &#20998;)</span>
+      <p class="text-zinc-400 text-[11px] leading-relaxed">
+        &#20381;&#12300;&#22283;&#23478;&#23433;&#20840;&#27861;&#12301;&#35469;&#23450;&#65292;&#20013;&#36039;&#32972;&#26223;&#22522;&#30990;&#20998; (4.0&#20998;)&#65307;&#20013;&#36039; (2.5&#20998;)&#65307;&#28207;&#36039;&#20013;&#36039; (1.0&#20998;)&#65307;&#22806;&#36039;&#20013;&#36039; (0.5&#20998;)&#12290;
+      </p>
+    </div>
+    <div class="border border-zinc-800/80 bg-[#0e0e11] p-3">
+      <span class="text-zinc-100 font-bold block mb-1">&#20108;&#12289; &#25919;&#27402;&#33287;&#36557;&#26041;&#38364;&#32879; (&#26368;&#39640; 3.0 &#20998;)</span>
+      <p class="text-zinc-400 text-[11px] leading-relaxed">
+        &#22283;&#20225;&#25110;&#36557;&#35686;&#22283;&#38450;&#32972;&#26223;&#26368;&#39640;&#21152;&#20998; (+3.0&#20998;)&#65307;&#40680;&#24314; (+1.0&#20998;)&#65307;&#19968;&#33324;&#27665;&#20225; (+0.0&#20998;)&#12290;
+      </p>
+    </div>
+    <div class="border border-zinc-800/80 bg-[#0e0e11] p-3">
+      <span class="text-zinc-100 font-bold block mb-1">&#19977;&#12289; &#20405;&#27402;&#20107;&#20214; (&#26368;&#39640; 3.0 &#20998;)</span>
+      <p class="text-zinc-400 text-[11px] leading-relaxed">
+        &#25976;&#25818;&#38577;&#31169;(+1.5)&#12289;&#21443;&#33287;&#37806;&#22739;(+1.2)&#12289;&#25216;&#34899;&#21512;&#20316;(+0.8)&#12289;&#35328;&#35542;&#23529;&#26597;(+0.5)&#65292;&#32047;&#35336;&#26368;&#39640;&#21152; 3.0 &#20998;&#12290;
+      </p>
+    </div>
+    <div class="border border-zinc-800/80 bg-[#0e0e11] p-3">
+      <span class="text-zinc-100 font-bold block mb-1">&#22235;&#12289; &#29986;&#21697;&#33287;&#26381;&#21209;</span>
+      <p class="text-zinc-400 text-[11px] leading-relaxed">
+        &#21697;&#29260;&#23376;&#20844;&#21496;&#25110;&#21512;&#36039;&#20225;&#26989;&#29986;&#21697;&#33258;&#21205;&#32380;&#25215;&#27597;&#20844;&#21496;&#26368;&#39640; 80% &#24471;&#20998;&#12290;&#26368;&#32066;&#24471;&#20998;&#26368;&#39640;&#28858; <span class="text-zinc-100 font-bold">10.0 &#20998;</span>&#12290;
+      </p>
+    </div>
+  </div>
+</div>
+            </div>
+        </div>
+
+        <!-- ASCII Scrolling Item Marquee -->
+        <div class="mt-8 overflow-hidden relative border-y border-zinc-800/80 py-2">
+            <div class="animate-marquee flex gap-3">
+                {doubleMarquee.map((item, idx) => (
+                  <a
+                    key={idx}
+                    href={`/items/${item.code}`}
+                    class="flex shrink-0 items-center gap-2 border border-zinc-800 bg-[#16161a] px-3 py-1 text-xs font-mono text-zinc-300 hover:border-zinc-500 hover:text-white"
+                  >
+                    <span class="text-zinc-500">+</span>
+                    <span class="text-zinc-200">{item.name}</span>
+                    <span class="text-zinc-500">[{item.score}/10]</span>
+                  </a>
+                ))}
+            </div>
+        </div>
+    </section>
+
+<!-- Full-Width ASCII Database Directory Section -->
+<section class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 font-mono">
+    <!-- ASCII Filter Toolbar -->
+    <div class="mb-8 space-y-3">
+        <!-- ASCII Search Input -->
+        <div class="border border-zinc-800 bg-[#16161a] p-3 shadow-xl">
+            <div class="flex items-center gap-2">
+                <span class="text-zinc-400 font-bold text-sm shrink-0"
+                    >&gt; SEARCH:</span
+                >
+                <input
+                    id="search"
+                    type="search"
+                    placeholder="請輸入名稱、別名或關鍵字... [ENTER]"
+                    class="w-full bg-transparent text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none font-mono"
+                />
+            </div>
+        </div>
+
+        <!-- ASCII Controls Bar -->
+        <div class="border border-zinc-800 bg-[#16161a] p-3">
+            <div
+                class="flex flex-wrap items-center justify-between gap-4 text-xs"
+            >
+                <div class="flex flex-wrap items-center gap-5">
+                    <!-- ASCII Custom Category Dropdown -->
+                    <div class="flex items-center gap-2 relative z-40">
+                        <span class="text-zinc-400 font-bold shrink-0"
+                            >[CAT]:</span
+                        >
+                        <div class="relative" id="custom-cat-dropdown">
+                            <button
+                                type="button"
+                                id="cat-trigger"
+                                class="flex items-center justify-between gap-3 border border-zinc-800 bg-[#0e0e11] px-3 py-1.5 text-xs text-zinc-200 hover:border-zinc-600 focus:outline-none min-w-[180px] font-mono"
+                            >
+                                <span id="cat-label"
+                                    >全部分類 ({categories.length})</span
+                                >
+                                <span class="text-zinc-500" id="cat-chevron"
+                                    >[v]</span
+                                >
+                            </button>
+                            <div
+                                id="cat-menu"
+                                class="hidden absolute left-0 top-full z-50 mt-1 max-h-72 w-64 overflow-y-auto border border-zinc-700 bg-[#0e0e11] py-1 shadow-2xl font-mono"
+                            >
+                                <div
+                                    class="custom-cat-opt px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer flex items-center justify-between"
+                                    data-value=""
+                                >
+                                    <span>+ 全部分類</span>
+                                    <span class="text-zinc-500"
+                                        >({categories.length})</span
+                                    >
+                                </div>
+                                {
+                                    categories.map((c) => (
+                                        <div
+                                            class="custom-cat-opt px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer border-t border-zinc-900 flex items-center justify-between"
+                                            data-value={c}
+                                        >
+                                            <span>
+                                                + {translateCategory(c)}
+                                            </span>
+                                            <span class="text-zinc-500">
+                                                ({c})
+                                            </span>
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ASCII Custom Owner Dropdown -->
+                    <div class="flex items-center gap-2 relative z-40">
+                        <span class="text-zinc-400 font-bold shrink-0"
+                            >[OWNER]:</span
+                        >
+                        <div class="relative" id="custom-owner-dropdown">
+                            <button
+                                type="button"
+                                id="owner-trigger"
+                                class="flex items-center justify-between gap-3 border border-zinc-800 bg-[#0e0e11] px-3 py-1.5 text-xs text-zinc-200 hover:border-zinc-600 focus:outline-none min-w-[150px] font-mono"
+                            >
+                                <span id="owner-label">全部資本權</span>
+                                <span class="text-zinc-500" id="owner-chevron"
+                                    >[v]</span
+                                >
+                            </button>
+                            <div
+                                id="owner-menu"
+                                class="hidden absolute left-0 top-full z-50 mt-1 w-56 border border-zinc-700 bg-[#0e0e11] py-1 shadow-2xl font-mono"
+                            >
+                                <div
+                                    class="custom-owner-opt px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer"
+                                    data-value=""
+                                >
+                                    + 全部資本權
+                                </div>
+                                <div
+                                    class="custom-owner-opt px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer border-t border-zinc-900"
+                                    data-value="CHINESE"
+                                >
+                                    + 中國資本 (CHINESE)
+                                </div>
+                                <div
+                                    class="custom-owner-opt px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer border-t border-zinc-900"
+                                    data-value="TAIWANESE"
+                                >
+                                    + 台灣資本 (TAIWANESE)
+                                </div>
+                                <div
+                                    class="custom-owner-opt px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer border-t border-zinc-900"
+                                    data-value="HONGKONGESE"
+                                >
+                                    + 香港資本 (HONGKONGESE)
+                                </div>
+                                <div
+                                    class="custom-owner-opt px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-800 hover:text-white cursor-pointer border-t border-zinc-900"
+                                    data-value="FOREIGN"
+                                >
+                                    + 外國資本 (FOREIGN)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ASCII Score Range Inputs -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-zinc-400 font-bold shrink-0"
+                            >[SCORE]:</span
+                        >
+                        <div class="flex items-center gap-1">
+                            <input
+                                id="score_min"
+                                type="number"
+                                min="0"
+                                max="10"
+                                placeholder="0"
+                                class="w-12 border border-zinc-800 bg-[#0e0e11] px-2 py-1 text-center text-xs text-zinc-200 focus:border-zinc-600 focus:outline-none font-mono"
+                            />
+                            <span class="text-zinc-600">..</span>
+                            <input
+                                id="score_max"
+                                type="number"
+                                min="0"
+                                max="10"
+                                placeholder="10"
+                                class="w-12 border border-zinc-800 bg-[#0e0e11] px-2 py-1 text-center text-xs text-zinc-200 focus:border-zinc-600 focus:outline-none font-mono"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reset Filter Button -->
+                <button
+                    id="clearFilters"
+                    class="text-xs text-zinc-400 hover:text-zinc-100 transition-colors px-3 py-1.5 border border-zinc-800 bg-[#0e0e11] cursor-pointer shrink-0 font-mono"
+                >
+                    [RESET_FILTERS]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DB Grid Header Info -->
+    <div
+        class="mb-4 flex items-center justify-between border-b border-zinc-800/80 pb-2 text-xs"
+    >
+        <p id="resultCount" class="text-zinc-400 font-mono">
+            &gt; FETCHING_DATABASE...
+        </p>
+    </div>
+
+    <!-- 4-column full width grid -->
+    <div
+        id="results"
+        class="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+    >
+    </div>
+
+    <div class="mt-10 text-center">
+        <button
+            id="loadMore"
+            class="hidden cursor-pointer border border-zinc-800 bg-[#16161a] px-8 py-3 text-xs font-bold text-zinc-200 hover:border-zinc-600 hover:bg-zinc-800 transition-colors font-mono"
+        >
+            [LOAD_MORE_RESULTS +]
+        </button>
+    </div>
+</section>
+
+<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
+<script is:inline define:vars={{ itemsData, CATEGORY_MAP, OWNER_MAP }}>
+    (function () {
+        var data = itemsData || [];
+        var categoryMap = CATEGORY_MAP || {};
+        var ownerMap = OWNER_MAP || {};
+
+        function trCategory(c) {
+            return categoryMap[c] || c;
+        }
+        function trOwner(o) {
+            return ownerMap[o] || o;
+        }
+
+        var fuse = null;
+        if (typeof Fuse !== "undefined") {
+            fuse = new Fuse(data, {
+                keys: ["n", "a", "no", "c"],
+                threshold: 0.3,
+                shouldSort: true,
+            });
+        }
+
+        var ITEMS_PER_PAGE = 24;
+        var filtered = data.slice();
+        var displayedCount = 0;
+        var selectedCategory = "";
+        var selectedOwner = "";
+
+        var searchInput = document.getElementById("search");
+        var scoreMinInput = document.getElementById("score_min");
+        var scoreMaxInput = document.getElementById("score_max");
+        var resultsContainer = document.getElementById("results");
+        var resultCount = document.getElementById("resultCount");
+        var loadMoreBtn = document.getElementById("loadMore");
+        var clearBtn = document.getElementById("clearFilters");
+
+        // Custom Category Dropdown Elements
+        var catTrigger = document.getElementById("cat-trigger");
+        var catMenu = document.getElementById("cat-menu");
+        var catLabel = document.getElementById("cat-label");
+        var catChevron = document.getElementById("cat-chevron");
+
+        // Custom Owner Dropdown Elements
+        var ownerTrigger = document.getElementById("owner-trigger");
+        var ownerMenu = document.getElementById("owner-menu");
+        var ownerLabel = document.getElementById("owner-label");
+        var ownerChevron = document.getElementById("owner-chevron");
+
+        // Toggle Custom Dropdowns
+        if (catTrigger && catMenu) {
+            catTrigger.addEventListener("click", function (e) {
+                e.stopPropagation();
+                var isHidden = catMenu.classList.contains("hidden");
+                closeAllDropdowns();
+                if (isHidden) {
+                    catMenu.classList.remove("hidden");
+                    if (catChevron) catChevron.classList.add("rotate-180");
+                }
+            });
+        }
+
+        if (ownerTrigger && ownerMenu) {
+            ownerTrigger.addEventListener("click", function (e) {
+                e.stopPropagation();
+                var isHidden = ownerMenu.classList.contains("hidden");
+                closeAllDropdowns();
+                if (isHidden) {
+                    ownerMenu.classList.remove("hidden");
+                    if (ownerChevron) ownerChevron.classList.add("rotate-180");
+                }
+            });
+        }
+
+        function closeAllDropdowns() {
+            if (catMenu) catMenu.classList.add("hidden");
+            if (catChevron) catChevron.classList.remove("rotate-180");
+            if (ownerMenu) ownerMenu.classList.add("hidden");
+            if (ownerChevron) ownerChevron.classList.remove("rotate-180");
+        }
+
+        document.addEventListener("click", closeAllDropdowns);
+
+        // Category Option Selection
+        var catOpts = document.querySelectorAll(".custom-cat-opt");
+        catOpts.forEach(function (opt) {
+            opt.addEventListener("click", function (e) {
+                e.stopPropagation();
+                var val = opt.getAttribute("data-value") || "";
+                selectedCategory = val;
+                if (catLabel) {
+                    catLabel.textContent = val
+                        ? trCategory(val) + " (" + val + ")"
+                        : "全部分類 (" +
+                          (data
+                              ? new Set(
+                                    data.map(function (i) {
+                                        return i.ct;
+                                    }),
+                                ).size
+                              : 0) +
+                          ")";
+                }
+                closeAllDropdowns();
+                applyFilters();
+            });
+        });
+
+        // Owner Option Selection
+        var ownerOpts = document.querySelectorAll(".custom-owner-opt");
+        ownerOpts.forEach(function (opt) {
+            opt.addEventListener("click", function (e) {
+                e.stopPropagation();
+                var val = opt.getAttribute("data-value") || "";
+                selectedOwner = val;
+                if (ownerLabel) {
+                    ownerLabel.textContent = val
+                        ? trOwner(val)
+                        : "全部資本權";
+                }
+                closeAllDropdowns();
+                applyFilters();
+            });
+        });
+
+        function getScoreBadgeHtml(s) {
+            var colorClass = "";
+            if (s <= 2) {
+                colorClass = "bg-[#111114] text-zinc-300 border-zinc-700";
+            } else if (s <= 4) {
+                colorClass = "bg-[#111114] text-slate-300 border-slate-700";
+            } else if (s <= 6) {
+                colorClass = "bg-[#111114] text-indigo-300 border-indigo-700";
+            } else if (s <= 8) {
+                colorClass = "bg-[#111114] text-purple-300 border-purple-700";
+            } else {
+                colorClass = "bg-[#111114] text-rose-400 border-rose-700";
+            }
+
+            return (
+                '<span class="inline-flex shrink-0 items-center border px-2 py-0.5 text-[11px] font-mono ' +
+                colorClass +
+                '">' +
+                "[" +
+                s +
+                "/10]" +
+                "</span>"
+            );
+        }
+
+        function getFilters() {
+            return {
+                q: searchInput ? searchInput.value.trim() : "",
+                c: selectedCategory,
+                o: selectedOwner,
+                score_min: scoreMinInput ? scoreMinInput.value : "",
+                score_max: scoreMaxInput ? scoreMaxInput.value : "",
+            };
+        }
+
+        function applyFilters() {
+            var f = getFilters();
+            var list = data.slice();
+
+            if (f.q) {
+                if (fuse) {
+                    list = fuse.search(f.q).map(function (r) {
+                        return r.item;
+                    });
+                } else {
+                    var query = f.q.toLowerCase();
+                    list = list.filter(function (item) {
+                        return (
+                            (item.n &&
+                                item.n.toLowerCase().indexOf(query) !== -1) ||
+                            (item.a &&
+                                item.a.toLowerCase().indexOf(query) !== -1) ||
+                            (item.c &&
+                                item.c.toLowerCase().indexOf(query) !== -1)
+                        );
+                    });
+                }
+            }
+
+            if (f.c) {
+                list = list.filter(function (item) {
+                    return item.ct === f.c;
+                });
+            }
+            if (f.o) {
+                list = list.filter(function (item) {
+                    return item.o === f.o;
+                });
+            }
+            if (f.score_min !== "") {
+                list = list.filter(function (item) {
+                    return item.s >= Number(f.score_min);
+                });
+            }
+            if (f.score_max !== "") {
+                list = list.filter(function (item) {
+                    return item.s <= Number(f.score_max);
+                });
+            }
+
+            filtered = list;
+            displayedCount = 0;
+            resultsContainer.innerHTML = "";
+            renderMore();
+            updateURL();
+        }
+
+        function renderMore() {
+            var remaining = filtered.slice(
+                displayedCount,
+                displayedCount + ITEMS_PER_PAGE,
+            );
+
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML =
+                    '<div class="col-span-full py-16 text-center text-zinc-500 font-mono">' +
+                    '<p class="text-sm">&gt; NO_ENTRIES_FOUND_MATCHING_FILTER</p>' +
+                    "</div>";
+                resultCount.textContent = "> RESULTS: 0_FOUND";
+                loadMoreBtn.style.display = "none";
+                return;
+            }
+
+            for (var i = 0; i < remaining.length; i++) {
+                var item = remaining[i];
+                var card = document.createElement("a");
+                card.href = "/items/" + encodeURIComponent(item.c);
+                card.className =
+                    "group flex flex-col justify-between border border-zinc-800 bg-[#16161a] p-4 transition-all hover:border-zinc-500 font-mono";
+
+                var aliasHtml = item.a
+                    ? '<p class="truncate text-xs text-zinc-400 mt-0.5 font-mono">' +
+                      escapeHtml(item.a) +
+                      "</p>"
+                    : "";
+
+                var noHtml =
+                    item.no && item.no.length
+                        ? '<p class="mt-1 truncate text-[11px] text-zinc-500 font-mono">' +
+                          item.no.map(escapeHtml).join("、") +
+                          "</p>"
+                        : "";
+
+                card.innerHTML =
+                    '<div class="flex items-start gap-3">' +
+                    '<img src="/logos/' +
+                    encodeURIComponent(item.c) +
+                    '.jpg" alt="' +
+                    escapeHtml(item.n) +
+                    '" class="h-10 w-10 shrink-0 border border-zinc-800 bg-[#0e0e11] object-cover" loading="lazy" onerror="this.style.display=\'none\'" />' +
+                    '<div class="min-w-0 flex-1">' +
+                    '<h3 class="truncate text-sm font-bold text-zinc-100 group-hover:text-white transition-colors font-mono">' +
+                    escapeHtml(item.n) +
+                    "</h3>" +
+                    aliasHtml +
+                    noHtml +
+                    "</div>" +
+                    getScoreBadgeHtml(item.s) +
+                    "</div>" +
+                    '<div class="mt-3 flex items-center justify-between border-t border-zinc-800/80 pt-2.5 text-[10px] text-zinc-400 font-mono">' +
+                    '<span class="bg-[#0e0e11] px-2 py-0.5 border border-zinc-800 text-zinc-400">[' +
+                    escapeHtml(trOwner(item.o)) +
+                    "]</span>" +
+                    '<span class="text-zinc-500">[' +
+                    escapeHtml(trCategory(item.ct)) +
+                    "]</span>" +
+                    "</div>";
+
+                resultsContainer.appendChild(card);
+            }
+
+            displayedCount += remaining.length;
+            resultCount.textContent =
+                "> DISPLAYING " +
+                displayedCount +
+                " / TOTAL " +
+                filtered.length +
+                " ENTRIES";
+            loadMoreBtn.style.display =
+                displayedCount >= filtered.length ? "none" : "inline-block";
+        }
+
+        function escapeHtml(str) {
+            if (str == null) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function updateURL() {
+            var params = new URLSearchParams();
+            var f = getFilters();
+            if (f.q) params.set("q", f.q);
+            if (f.c) params.set("c", f.c);
+            if (f.o) params.set("o", f.o);
+            if (f.score_min) params.set("score_min", f.score_min);
+            if (f.score_max) params.set("score_max", f.score_max);
+            var qs = params.toString();
+            history.replaceState(
+                null,
+                "",
+                qs ? "?" + qs : window.location.pathname,
+            );
+        }
+
+        function loadFromURL() {
+            var params = new URLSearchParams(location.search);
+            if (params.has("q") && searchInput)
+                searchInput.value = params.get("q");
+            if (params.has("c")) {
+                selectedCategory = params.get("c");
+                if (catLabel)
+                    catLabel.textContent = selectedCategory
+                        ? trCategory(selectedCategory) +
+                          " (" +
+                          selectedCategory +
+                          ")"
+                        : "全部分類";
+            }
+            if (params.has("o")) {
+                selectedOwner = params.get("o");
+                if (ownerLabel)
+                    ownerLabel.textContent = selectedOwner
+                        ? trOwner(selectedOwner)
+                        : "全部資本權";
+            }
+            if (params.has("score_min") && scoreMinInput)
+                scoreMinInput.value = params.get("score_min");
+            if (params.has("score_max") && scoreMaxInput)
+                scoreMaxInput.value = params.get("score_max");
+        }
+
+        if (searchInput) searchInput.addEventListener("input", applyFilters);
+        if (scoreMinInput)
+            scoreMinInput.addEventListener("input", applyFilters);
+        if (scoreMaxInput)
+            scoreMaxInput.addEventListener("input", applyFilters);
+        if (loadMoreBtn) loadMoreBtn.addEventListener("click", renderMore);
+        if (clearBtn)
+            clearBtn.addEventListener("click", function () {
+                if (searchInput) searchInput.value = "";
+                selectedCategory = "";
+                selectedOwner = "";
+                if (catLabel) catLabel.textContent = "全部分類";
+                if (ownerLabel) ownerLabel.textContent = "全部資本權";
+                if (scoreMinInput) scoreMinInput.value = "";
+                if (scoreMaxInput) scoreMaxInput.value = "";
+                applyFilters();
+            });
+
+        loadFromURL();
+        applyFilters();
+    })();
+</script>
+</Layout>

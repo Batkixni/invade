@@ -1,0 +1,276 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { getAllVocabs } from "@/lib/db/queries";
+
+export const prerender = true;
+
+const vocabs = await getAllVocabs();
+
+const categories = [...new Set(vocabs.map((v) => v.category))].sort();
+
+const vocabsData = vocabs.map((v) => ({
+  w: v.word,
+  b: v.bopomofo,
+  ct: v.category,
+  e: v.explicit,
+  d: v.description,
+  dp: v.deprecation,
+  n: v.notice,
+  s: v.score,
+}));
+---
+
+<Layout title="侵略詞彙列表 — 笨他侵略" description="瀏覽與中國言論審查及中共用語相關的詞彙字典">
+  <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <div class="flex items-center gap-3">
+        <span class="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
+        <span class="text-xs font-mono font-semibold uppercase tracking-wider text-zinc-400">VOCABULARY DICTIONARY</span>
+      </div>
+      <h1 class="mt-2 text-3xl font-black tracking-tight text-zinc-100 sm:text-4xl">侵略性詞彙字典</h1>
+      <p class="mt-2 text-sm text-zinc-400">收錄 {vocabs.length} 個受到中國言論審查或中共思想影響的詞彙與用法比對。</p>
+    </div>
+
+    <div class="mb-8">
+      <div class="relative">
+        <input
+          id="search"
+          type="search"
+          placeholder="搜尋詞彙、注音、釋義說明⋯"
+          class="w-full rounded-xl border border-zinc-800 bg-zinc-900/90 px-4 py-3.5 pl-11 text-base text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-600 shadow-inner transition-all"
+        />
+        <svg class="absolute left-3.5 top-4 h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-8 lg:flex-row">
+      <aside class="w-full shrink-0 lg:w-64">
+        <div class="sticky top-24 space-y-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-md">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-200">過濾條件</h2>
+            <button
+              id="clearFilters"
+              class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              重置
+            </button>
+          </div>
+
+          <div>
+            <label for="category" class="mb-2 block text-xs font-semibold text-zinc-400">詞彙屬性分類</label>
+            <select id="category" class="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none">
+              <option value="">全部分類 ({categories.length})</option>
+              {categories.map((c) => <option value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label class="flex items-center gap-2.5 text-sm text-zinc-300 cursor-pointer">
+              <input
+                id="showExplicit"
+                type="checkbox"
+                class="rounded border-zinc-700 bg-zinc-950 text-rose-600 focus:ring-rose-500"
+              />
+              <span class="font-medium text-xs">顯示限制級內容</span>
+            </label>
+            <p class="mt-1.5 text-[11px] text-zinc-500 leading-relaxed">勾選以涵蓋 LANGUAGE 或 SEXUAL 敏感詞彙。</p>
+          </div>
+        </div>
+      </aside>
+
+      <div class="flex-1">
+        <div class="mb-4 flex items-center justify-between">
+          <p id="resultCount" class="text-xs font-mono text-zinc-400">正在載入詞彙庫...</p>
+        </div>
+
+        <div id="results" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+
+        <div class="mt-10 text-center">
+          <button
+            id="loadMore"
+            class="hidden cursor-pointer rounded-xl border border-zinc-800 bg-zinc-900 px-8 py-3 text-sm font-semibold text-zinc-200 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+          >
+            載入更多詞彙
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script id="vocabs-data" type="application/json" set:html={JSON.stringify({ vocabs: vocabsData })} />
+<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
+<script is:inline>
+(function () {
+  var rawText = document.getElementById("vocabs-data") ? document.getElementById("vocabs-data").textContent : "{}";
+  var data = [];
+  try {
+    data = JSON.parse(rawText).vocabs || [];
+  } catch (e) {
+    console.error("Parse vocabs failed:", e);
+  }
+
+  var fuse = null;
+  if (typeof Fuse !== "undefined") {
+    fuse = new Fuse(data, {
+      keys: ["w", "d", "b"],
+      threshold: 0.3,
+      shouldSort: true,
+    });
+  }
+
+  var ITEMS_PER_PAGE = 24;
+  var filtered = data.slice();
+  var displayedCount = 0;
+  var searchInput = document.getElementById("search");
+  var categorySelect = document.getElementById("category");
+  var showExplicit = document.getElementById("showExplicit");
+  var resultsContainer = document.getElementById("results");
+  var resultCount = document.getElementById("resultCount");
+  var loadMoreBtn = document.getElementById("loadMore");
+  var clearBtn = document.getElementById("clearFilters");
+
+  function getExplicitBadgeHtml(e) {
+    if (!e) return "";
+    if (e === "SEXUAL") return '<span class="rounded bg-rose-950/80 border border-rose-800/60 px-2 py-0.5 text-[10px] font-mono font-semibold text-rose-400">SEXUAL</span>';
+    return '<span class="rounded bg-purple-950/80 border border-purple-800/60 px-2 py-0.5 text-[10px] font-mono font-semibold text-purple-400">' + escapeHtml(e) + '</span>';
+  }
+
+  function getFilters() {
+    return {
+      q: searchInput ? searchInput.value.trim() : "",
+      c: categorySelect ? categorySelect.value : "",
+      se: showExplicit ? showExplicit.checked : false,
+    };
+  }
+
+  function applyFilters() {
+    var f = getFilters();
+    var list = data.slice();
+
+    if (f.q) {
+      if (fuse) {
+        list = fuse.search(f.q).map(function (r) { return r.item; });
+      } else {
+        var query = f.q.toLowerCase();
+        list = list.filter(function (item) {
+          return (
+            (item.w && item.w.toLowerCase().indexOf(query) !== -1) ||
+            (item.d && item.d.toLowerCase().indexOf(query) !== -1) ||
+            (item.b && item.b.toLowerCase().indexOf(query) !== -1)
+          );
+        });
+      }
+    }
+
+    if (f.c) {
+      list = list.filter(function (item) { return item.ct === f.c; });
+    }
+
+    if (!f.se) {
+      list = list.filter(function (item) { return item.e == null; });
+    }
+
+    filtered = list;
+    displayedCount = 0;
+    resultsContainer.innerHTML = "";
+    renderMore();
+    updateURL();
+  }
+
+  function renderMore() {
+    var remaining = filtered.slice(displayedCount, displayedCount + ITEMS_PER_PAGE);
+
+    if (filtered.length === 0) {
+      resultsContainer.innerHTML =
+        '<div class="col-span-full py-16 text-center text-zinc-500">' +
+        '<p class="text-base">無符合條件的詞彙紀錄</p>' +
+        '</div>';
+      resultCount.textContent = "共 0 筆結果";
+      loadMoreBtn.style.display = "none";
+      return;
+    }
+
+    for (var i = 0; i < remaining.length; i++) {
+      var item = remaining[i];
+      var card = document.createElement("a");
+      card.href = "/vocabs/" + encodeURIComponent(item.w);
+      card.className =
+        "group flex flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900 hover:shadow-xl hover:shadow-black/50 backdrop-blur-sm";
+
+      var depHtml = item.dp
+        ? '<div class="mt-2 rounded-md border border-rose-900/60 bg-rose-950/40 p-2 text-xs text-rose-300">' +
+          '<span class="font-bold">⚠ 建議停用：</span>' + escapeHtml(item.dp) +
+          '</div>'
+        : "";
+
+      card.innerHTML =
+        '<div>' +
+        '<div class="flex items-start justify-between gap-2">' +
+        '<h3 class="text-lg font-bold text-zinc-100 group-hover:text-white transition-colors">' +
+        escapeHtml(item.w) +
+        '</h3>' +
+        getExplicitBadgeHtml(item.e) +
+        '</div>' +
+        (item.b ? '<p class="text-xs font-mono text-zinc-500 mt-0.5">' + escapeHtml(item.b) + '</p>' : "") +
+        (item.d ? '<p class="mt-2 line-clamp-2 text-xs text-zinc-400 leading-relaxed">' + escapeHtml(item.d) + '</p>' : "") +
+        depHtml +
+        '</div>' +
+        '<div class="mt-3 flex items-center justify-between border-t border-zinc-800/80 pt-2 text-[11px] text-zinc-500 font-mono">' +
+        '<span>' + escapeHtml(item.ct || 'GENERAL') + '</span>' +
+        '<span class="text-zinc-600 group-hover:text-zinc-400 transition-colors">查看詳情 →</span>' +
+        '</div>';
+
+      resultsContainer.appendChild(card);
+    }
+
+    displayedCount += remaining.length;
+    resultCount.textContent = "已顯示 " + displayedCount + " / 共 " + filtered.length + " 筆詞彙";
+    loadMoreBtn.style.display = displayedCount >= filtered.length ? "none" : "inline-block";
+  }
+
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function updateURL() {
+    var params = new URLSearchParams();
+    var f = getFilters();
+    if (f.q) params.set("q", f.q);
+    if (f.c) params.set("c", f.c);
+    if (f.se) params.set("se", "1");
+    var qs = params.toString();
+    history.replaceState(null, "", qs ? "?" + qs : window.location.pathname);
+  }
+
+  function loadFromURL() {
+    var params = new URLSearchParams(location.search);
+    if (params.has("q") && searchInput) searchInput.value = params.get("q");
+    if (params.has("c") && categorySelect) categorySelect.value = params.get("c");
+    if (params.has("se") && showExplicit) showExplicit.checked = params.get("se") === "1";
+  }
+
+  if (searchInput) searchInput.addEventListener("input", applyFilters);
+  if (categorySelect) categorySelect.addEventListener("change", applyFilters);
+  if (showExplicit) showExplicit.addEventListener("change", applyFilters);
+  if (loadMoreBtn) loadMoreBtn.addEventListener("click", renderMore);
+  if (clearBtn)
+    clearBtn.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      if (categorySelect) categorySelect.value = "";
+      if (showExplicit) showExplicit.checked = false;
+      applyFilters();
+    });
+
+  loadFromURL();
+  applyFilters();
+})();
+</script>
+

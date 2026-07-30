@@ -1,0 +1,52 @@
+---
+export const prerender = true;
+
+import Layout from "@/layouts/Layout.astro";
+import { getAllNews } from "@/lib/db/queries";
+import { formatDate } from "@/lib/utils";
+
+const allNews = await getAllNews();
+---
+
+<Layout title="官方公告與新聞 — 笨他侵略" description="笨他侵略資料庫的官方新聞與紀錄發布公告">
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="mb-8 border-b border-zinc-800/80 pb-6">
+      <div class="flex items-center gap-2 text-xs font-mono text-zinc-400 uppercase tracking-wider">
+        <span class="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
+        <span>OFFICIAL ANNOUNCEMENTS</span>
+      </div>
+      <h1 class="mt-2 text-3xl font-black tracking-tight text-zinc-100 sm:text-4xl">官方新聞與公告</h1>
+    </div>
+
+    {
+      allNews.length === 0 ? (
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-12 text-center text-zinc-500">
+          <p class="text-base">尚無公告發布</p>
+        </div>
+      ) : (
+        <div class="space-y-4">
+          {allNews.map((article) => (
+            <article class="group rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 transition-all hover:border-zinc-700 hover:bg-zinc-900">
+              <time class="font-mono text-xs text-zinc-500" datetime={article.date}>
+                {formatDate(article.date)}
+              </time>
+              <h2 class="mt-1.5 text-xl font-bold text-zinc-100 group-hover:text-rose-400 transition-colors">
+                <a href={`/news/${article.slug}`}>
+                  {article.title}
+                </a>
+              </h2>
+              {article.summary && (
+                <p class="mt-3 text-sm text-zinc-400 leading-relaxed line-clamp-3">{article.summary}</p>
+              )}
+              <div class="mt-4 flex items-center gap-1 text-xs font-mono text-zinc-500 group-hover:text-zinc-300 transition-colors">
+                <span>閱讀全文</span>
+                <span>→</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</Layout>
+

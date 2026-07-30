@@ -1,0 +1,32 @@
+---
+export interface Props {
+  loggedIn?: boolean;
+}
+
+const { loggedIn = false } = Astro.props;
+---
+
+<nav class="sticky top-0 z-50 w-full border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
+  <div class="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <a href="/" class="group flex items-center gap-2 text-lg font-bold tracking-tight text-zinc-100 transition-colors hover:text-white">
+      <span class="inline-block h-2 w-2 rounded-full bg-rose-500/80"></span>
+      <span>笨他侵略 — 資料庫</span>
+    </a>
+
+    <div class="flex items-center gap-4">
+      {
+        loggedIn && (
+          <a
+            href="/admin"
+            class="rounded-full bg-zinc-900 border border-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            管理後台
+          </a>
+        )
+      }
+    </div>
+  </div>
+</nav>
+
+
+

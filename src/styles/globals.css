@@ -1,0 +1,108 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: #111114;
+  --color-foreground: #e4e4e7;
+  --color-card: #16161a;
+  --color-card-foreground: #e4e4e7;
+  --color-popover: #16161a;
+  --color-popover-foreground: #e4e4e7;
+  --color-primary: #e4e4e7;
+  --color-primary-foreground: #111114;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #e4e4e7;
+  --color-muted: #27272a;
+  --color-muted-foreground: #9ca3af;
+  --color-accent: #27272a;
+  --color-accent-foreground: #e4e4e7;
+  --color-destructive: #7f1d1d;
+  --color-destructive-foreground: #e4e4e7;
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #3f3f46;
+
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+  *, ::before, ::after {
+    @apply border-border;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Noto Sans TC", monospace !important;
+    border-radius: 0px !important;
+  }
+  html {
+    color-scheme: dark;
+    background-color: #111114;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Noto Sans TC", monospace !important;
+    border-radius: 0px !important;
+  }
+  body {
+    @apply bg-[#111114] text-[#e4e4e7] antialiased;
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Noto Sans TC", monospace !important;
+    border-radius: 0px !important;
+  }
+}
+
+
+
+
+/* Subtle, Muted Score Indicators */
+.score-indicator {
+  @apply inline-flex items-center gap-1;
+}
+
+.score-dot {
+  @apply w-2 h-2 rounded-full border border-zinc-800 bg-zinc-900 transition-colors duration-150;
+}
+
+.score-dot.active-low {
+  @apply bg-zinc-400 border-zinc-300;
+}
+.score-dot.active-notice {
+  @apply bg-slate-400 border-slate-300;
+}
+.score-dot.active-warn {
+  @apply bg-indigo-500 border-indigo-400;
+}
+.score-dot.active-severe {
+  @apply bg-purple-500 border-purple-400;
+}
+.score-dot.active-critical {
+  @apply bg-rose-500 border-rose-400;
+}
+
+.score-label {
+  @apply text-xs font-medium text-zinc-400 ml-1.5;
+}
+
+/* Infinite Marquee Ticker */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+
+
+

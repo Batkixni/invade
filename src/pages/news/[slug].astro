@@ -1,0 +1,58 @@
+---
+export const prerender = true;
+
+import Layout from "@/layouts/Layout.astro";
+import { getAllNews } from "@/lib/db/queries";
+import { formatDate } from "@/lib/utils";
+
+export async function getStaticPaths() {
+  const allNews = await getAllNews();
+  return allNews.map((article) => ({
+    params: { slug: article.slug },
+    props: { article },
+  }));
+}
+
+const { article } = Astro.props;
+const contentHtml = article.content.replace(/\n/g, "<br>");
+
+const allNews = await getAllNews();
+const currentIndex = allNews.findIndex((a) => a.slug === article.slug);
+const prev = currentIndex < allNews.length - 1 ? allNews[currentIndex + 1] : null;
+const next = currentIndex > 0 ? allNews[currentIndex - 1] : null;
+---
+
+<Layout title={`${article.title} — 笨他侵略`} description={article.summary}>
+  <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+    <a href="/news" class="inline-flex items-center gap-1.5 font-mono text-xs text-zinc-400 hover:text-zinc-100 transition-colors mb-6">
+      <span>&larr; 返回官方新聞列表</span>
+    </a>
+
+    <article class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 sm:p-8 backdrop-blur-md">
+      <time class="font-mono text-xs text-rose-400" datetime={article.date}>
+        {formatDate(article.date)}
+      </time>
+      <h1 class="mt-2 text-2xl font-black tracking-tight text-zinc-100 sm:text-4xl">{article.title}</h1>
+      {article.summary && (
+        <blockquote class="mt-6 border-l-2 border-rose-500 bg-rose-950/20 pl-4 py-2 text-sm text-zinc-300 rounded-r-lg">
+          {article.summary}
+        </blockquote>
+      )}
+      <div class="mt-8 text-sm text-zinc-300 leading-relaxed whitespace-pre-line border-t border-zinc-800/80 pt-6" set:html={contentHtml} />
+    </article>
+
+    <nav class="mt-10 flex items-center justify-between border-t border-zinc-800/80 pt-6">
+      {prev ? (
+        <a href={`/news/${prev.slug}`} class="font-mono text-xs text-zinc-400 hover:text-zinc-100 transition-colors">
+          &larr; 上一篇: {prev.title}
+        </a>
+      ) : <span />}
+      {next ? (
+        <a href={`/news/${next.slug}`} class="font-mono text-xs text-zinc-400 hover:text-zinc-100 transition-colors">
+          下一篇: {next.title} &rarr;
+        </a>
+      ) : <span />}
+    </nav>
+  </div>
+</Layout>
+

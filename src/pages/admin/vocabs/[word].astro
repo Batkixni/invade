@@ -1,0 +1,246 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { auth } from "@/lib/auth";
+
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { getVocabByWord } from "@/lib/db/queries";
+
+const session = await auth.api.getSession({ headers: Astro.request.headers });
+if (!session) {
+  return Astro.redirect("/admin/login");
+}
+
+const word = Astro.params.word!;
+const isNew = word === "new";
+
+let vocab = null;
+if (!isNew) {
+  vocab = await getVocabByWord(word);
+  if (!vocab) {
+    return Astro.redirect("/admin/vocabs");
+  }
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = formData.get("_action");
+
+  if (action === "delete" && !isNew) {
+    await db.delete(schema.vocabs).where(eq(schema.vocabs.word, word));
+    return Astro.redirect("/admin/vocabs");
+  }
+
+  if (action === "save") {
+    const now = new Date().toISOString();
+    const bopomofo = (formData.get("bopomofo") as string) || null;
+    const category = (formData.get("category") as string) || "NOUN";
+    const explicit = (formData.get("explicit") as string) || null;
+    const description = (formData.get("description") as string) || null;
+    const deprecation = (formData.get("deprecation") as string) || null;
+    const notice = (formData.get("notice") as string) || null;
+    const score = parseInt(formData.get("score") as string) || 0;
+
+    if (isNew) {
+      const newWord = formData.get("word") as string;
+      await db.insert(schema.vocabs).values({
+        word: newWord,
+        bopomofo,
+        category,
+        explicit,
+        description,
+        deprecation,
+        notice,
+        score,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return Astro.redirect(`/admin/vocabs/${newWord}`);
+    } else {
+      await db
+        .update(schema.vocabs)
+        .set({
+          bopomofo,
+          category,
+          explicit,
+          description,
+          deprecation,
+          notice,
+          score,
+          updatedAt: now,
+        })
+        .where(eq(schema.vocabs.word, word));
+      return Astro.redirect(`/admin/vocabs/${word}`);
+    }
+  }
+
+  if (action === "add_example" && !isNew) {
+    const exDescription = (formData.get("ex_description") as string) || null;
+    const correct = (formData.get("ex_correct") as string) || "";
+    const incorrect = (formData.get("ex_incorrect") as string) || null;
+    await db.insert(schema.vocabExamples).values({
+      vocabWord: word,
+      description: exDescription,
+      correct,
+      incorrect,
+    });
+    return Astro.redirect(`/admin/vocabs/${word}`);
+  }
+
+  if (action === "delete_example" && !isNew) {
+    const id = parseInt(formData.get("id") as string);
+    await db.delete(schema.vocabExamples).where(eq(schema.vocabExamples.id, id));
+    return Astro.redirect(`/admin/vocabs/${word}`);
+  }
+}
+---
+
+<Layout title={isNew ? "新增詞彙 - 管理後台 - 笨他侵略" : `編輯 ${vocab?.word} - 管理後台 - 笨他侵略`}>
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <a href="/admin/vocabs" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+      &larr; 返回詞彙列表
+    </a>
+
+    <h1 class="text-3xl font-black tracking-tight mt-4 mb-8">
+      {isNew ? "新增詞彙" : `編輯詞彙: ${vocab?.word}`}
+    </h1>
+
+    <form method="POST" class="space-y-6">
+      <input type="hidden" name="_action" value="save" />
+
+      {isNew && (
+        <div>
+          <label for="word" class="block text-sm font-medium mb-1">詞彙 *</label>
+          <input type="text" id="word" name="word" required
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+      )}
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="bopomofo" class="block text-sm font-medium mb-1">注音</label>
+          <input type="text" id="bopomofo" name="bopomofo"
+            value={vocab?.bopomofo ?? ""}
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+        <div>
+          <label for="category" class="block text-sm font-medium mb-1">分類</label>
+          <select id="category" name="category"
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="NOUN" selected={vocab?.category === "NOUN"}>NOUN</option>
+            <option value="VERB" selected={vocab?.category === "VERB"}>VERB</option>
+            <option value="ADJECTIVE" selected={vocab?.category === "ADJECTIVE"}>ADJECTIVE</option>
+            <option value="PHRASE" selected={vocab?.category === "PHRASE"}>PHRASE</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="explicit" class="block text-sm font-medium mb-1">明確定義</label>
+        <input type="text" id="explicit" name="explicit"
+          value={vocab?.explicit ?? ""}
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </div>
+
+      <div>
+        <label for="description" class="block text-sm font-medium mb-1">描述</label>
+        <textarea id="description" name="description" rows="3"
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >{vocab?.description ?? ""}</textarea>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="deprecation" class="block text-sm font-medium mb-1">貶義用法</label>
+          <textarea id="deprecation" name="deprecation" rows="3"
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >{vocab?.deprecation ?? ""}</textarea>
+        </div>
+        <div>
+          <label for="notice" class="block text-sm font-medium mb-1">注意事項</label>
+          <textarea id="notice" name="notice" rows="3"
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >{vocab?.notice ?? ""}</textarea>
+        </div>
+      </div>
+
+      <div class="w-32">
+        <label for="score" class="block text-sm font-medium mb-1">分數</label>
+        <input type="number" id="score" name="score" min="0" max="10"
+          value={vocab?.score ?? 0}
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button type="submit"
+          class="rounded-md bg-foreground text-background px-6 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
+        >
+          {isNew ? "建立" : "儲存"}
+        </button>
+        {!isNew && (
+          <button type="submit" name="_action" value="delete"
+            class="rounded-md border border-destructive text-destructive px-6 py-2 text-sm font-medium hover:bg-destructive/10 transition-colors"
+            onclick="return confirm('確定刪除?')"
+          >
+            刪除
+          </button>
+        )}
+      </div>
+    </form>
+
+    {!isNew && vocab && (
+      <section class="mt-12">
+        <h2 class="text-xl font-bold mb-4">例句</h2>
+        {vocab.examples.length > 0 && (
+          <div class="space-y-3 mb-4">
+            {vocab.examples.map((ex) => (
+              <div class="rounded-md border border-border px-4 py-3">
+                <div class="flex items-start justify-between">
+                  <div class="text-sm space-y-1">
+                    {ex.description && <p class="text-muted-foreground text-xs">{ex.description}</p>}
+                    <p><span class="text-green-600 font-medium">正:</span> {ex.correct}</p>
+                    {ex.incorrect && <p><span class="text-red-600 font-medium">誤:</span> {ex.incorrect}</p>}
+                  </div>
+                  <form method="POST" class="inline ml-2 shrink-0">
+                    <input type="hidden" name="_action" value="delete_example" />
+                    <input type="hidden" name="id" value={ex.id} />
+                    <button type="submit" class="text-xs text-destructive hover:text-destructive/80 transition-colors">移除</button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <form method="POST" class="space-y-2 rounded-md border border-border p-4">
+          <input type="hidden" name="_action" value="add_example" />
+          <div>
+            <label class="block text-xs font-medium mb-1">說明</label>
+            <input type="text" name="ex_description"
+              class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">正確用法 *</label>
+            <input type="text" name="ex_correct" required
+              class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-medium mb-1">錯誤用法</label>
+            <input type="text" name="ex_incorrect"
+              class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <button type="submit"
+            class="rounded-md bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
+          >新增例句</button>
+        </form>
+      </section>
+    )}
+  </div>
+</Layout>

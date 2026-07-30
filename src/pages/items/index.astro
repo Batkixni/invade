@@ -1,0 +1,353 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { getAllItems } from "@/lib/db/queries";
+
+export const prerender = true;
+
+const items = await getAllItems();
+
+const categories = [...new Set(items.map((i) => i.category))].sort();
+
+const itemsData = items.map((i) => ({
+  c: i.code,
+  n: i.name,
+  a: i.nameAlias,
+  t: i.type,
+  ct: i.category,
+  o: i.owner,
+  s: i.score,
+  no: i.nameOthers.map((x) => x.name),
+}));
+---
+
+<Layout title="瀏覽公司與組織 — 笨他侵略" description="瀏覽與中國侵略有關的公司、組織與機構列表">
+  <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <div class="flex items-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-emerald-500/80"></span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-zinc-400">DATABASE DIRECTORY</span>
+      </div>
+      <h1 class="mt-2 text-3xl font-bold tracking-tight text-zinc-100 sm:text-4xl">瀏覽公司與組織</h1>
+      <p class="mt-2 text-sm text-zinc-400">收錄 {items.length} 筆與中資、言論審查及中共影響力相關的機構與企業紀錄。</p>
+    </div>
+
+    <div class="mb-8">
+      <div class="relative">
+        <input
+          id="search"
+          type="search"
+          placeholder="搜尋名稱、別名、英文縮寫⋯"
+          class="w-full rounded-xl border border-zinc-800 bg-zinc-900/90 px-4 py-3.5 pl-11 text-base text-zinc-100 placeholder:text-zinc-500 focus:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-600 shadow-inner transition-all"
+        />
+        <svg class="absolute left-3.5 top-4 h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-8 lg:flex-row">
+      <aside class="w-full shrink-0 lg:w-64">
+        <div class="sticky top-24 space-y-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-md">
+          <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-zinc-200">過濾條目</h2>
+            <button
+              id="clearFilters"
+              class="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            >
+              重置
+            </button>
+          </div>
+
+          <div>
+            <label for="category" class="mb-2 block text-xs font-semibold text-zinc-400">產業分類</label>
+            <select id="category" class="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none">
+              <option value="">全部分類 ({categories.length})</option>
+              {categories.map((c) => <option value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label for="owner" class="mb-2 block text-xs font-semibold text-zinc-400">資本所屬</label>
+            <select id="owner" class="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-200 focus:border-zinc-700 focus:outline-none">
+              <option value="">全部資本權</option>
+              <option value="TAIWANESE">TAIWANESE (台灣)</option>
+              <option value="HONGKONGESE">HONGKONGESE (香港)</option>
+              <option value="CHINESE">CHINESE (中國)</option>
+              <option value="FOREIGN">FOREIGN (外資)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="mb-2 block text-xs font-semibold text-zinc-400">侵略分數區間 (0 - 10)</label>
+            <div class="flex items-center gap-2">
+              <input
+                id="score_min"
+                type="number"
+                min="0"
+                max="10"
+                placeholder="0"
+                class="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-zinc-700 focus:outline-none"
+              />
+              <span class="text-zinc-600">—</span>
+              <input
+                id="score_max"
+                type="number"
+                min="0"
+                max="10"
+                placeholder="10"
+                class="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-zinc-700 focus:outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      </aside>
+
+
+
+      <div class="flex-1">
+        <div class="mb-4 flex items-center justify-between">
+          <p id="resultCount" class="text-xs text-zinc-400">正在載入資料庫...</p>
+        </div>
+
+        <div id="results" class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"></div>
+
+        <div class="mt-10 text-center">
+          <button
+            id="loadMore"
+            class="hidden cursor-pointer rounded-xl border border-zinc-800 bg-zinc-900 px-8 py-3 text-sm font-semibold text-zinc-200 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+          >
+            載入更多結果
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script id="items-data" type="application/json" set:html={JSON.stringify({ items: itemsData })} />
+<script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/7.0.0/fuse.min.js"></script>
+<script is:inline>
+(function () {
+  var rawText = document.getElementById("items-data") ? document.getElementById("items-data").textContent : "{}";
+  var data = [];
+  try {
+    data = JSON.parse(rawText).items || [];
+  } catch (e) {
+    console.error("Parse items failed:", e);
+  }
+
+  var fuse = null;
+  if (typeof Fuse !== "undefined") {
+    fuse = new Fuse(data, {
+      keys: ["n", "a", "no", "c"],
+      threshold: 0.3,
+      shouldSort: true,
+    });
+  }
+
+  var ITEMS_PER_PAGE = 18;
+  var filtered = data.slice();
+  var displayedCount = 0;
+  var searchInput = document.getElementById("search");
+  var categorySelect = document.getElementById("category");
+  var ownerSelect = document.getElementById("owner");
+  var scoreMinInput = document.getElementById("score_min");
+  var scoreMaxInput = document.getElementById("score_max");
+  var resultsContainer = document.getElementById("results");
+  var resultCount = document.getElementById("resultCount");
+  var loadMoreBtn = document.getElementById("loadMore");
+  var clearBtn = document.getElementById("clearFilters");
+
+  function getScoreBadgeHtml(s) {
+    var colorClass = "";
+    var label = "";
+    if (s <= 2) {
+      colorClass = "bg-zinc-900/90 text-zinc-300 border-zinc-700/80";
+      label = "輕微";
+    } else if (s <= 4) {
+      colorClass = "bg-slate-900/90 text-slate-300 border-slate-700/80";
+      label = "注意";
+    } else if (s <= 6) {
+      colorClass = "bg-indigo-950/90 text-indigo-300 border-indigo-800/80";
+      label = "警告";
+    } else if (s <= 8) {
+      colorClass = "bg-purple-950/90 text-purple-300 border-purple-800/80";
+      label = "嚴重";
+    } else {
+      colorClass = "bg-rose-950/90 text-rose-300 border-rose-800/80";
+      label = "極度侵略";
+    }
+
+    return (
+      '<span class="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ' +
+      colorClass +
+      '">' +
+      s +
+      ' <span class="opacity-30">/</span> ' +
+      label +
+      "</span>"
+    );
+  }
+
+
+  function getFilters() {
+    return {
+      q: searchInput ? searchInput.value.trim() : "",
+      c: categorySelect ? categorySelect.value : "",
+      o: ownerSelect ? ownerSelect.value : "",
+      score_min: scoreMinInput ? scoreMinInput.value : "",
+      score_max: scoreMaxInput ? scoreMaxInput.value : "",
+    };
+  }
+
+  function applyFilters() {
+    var f = getFilters();
+    var list = data.slice();
+
+    if (f.q) {
+      if (fuse) {
+        list = fuse.search(f.q).map(function (r) { return r.item; });
+      } else {
+        var query = f.q.toLowerCase();
+        list = list.filter(function (item) {
+          return (
+            (item.n && item.n.toLowerCase().indexOf(query) !== -1) ||
+            (item.a && item.a.toLowerCase().indexOf(query) !== -1) ||
+            (item.c && item.c.toLowerCase().indexOf(query) !== -1)
+          );
+        });
+      }
+    }
+
+    if (f.c) {
+      list = list.filter(function (item) { return item.ct === f.c; });
+    }
+    if (f.o) {
+      list = list.filter(function (item) { return item.o === f.o; });
+    }
+    if (f.score_min !== "") {
+      list = list.filter(function (item) { return item.s >= Number(f.score_min); });
+    }
+    if (f.score_max !== "") {
+      list = list.filter(function (item) { return item.s <= Number(f.score_max); });
+    }
+
+    filtered = list;
+    displayedCount = 0;
+    resultsContainer.innerHTML = "";
+    renderMore();
+    updateURL();
+  }
+
+  function renderMore() {
+    var remaining = filtered.slice(displayedCount, displayedCount + ITEMS_PER_PAGE);
+
+    if (filtered.length === 0) {
+      resultsContainer.innerHTML =
+        '<div class="col-span-full py-16 text-center text-zinc-500">' +
+        '<p class="text-base">無符合條件的條目紀錄</p>' +
+        '</div>';
+      resultCount.textContent = "共 0 筆結果";
+      loadMoreBtn.style.display = "none";
+      return;
+    }
+
+    for (var i = 0; i < remaining.length; i++) {
+      var item = remaining[i];
+      var card = document.createElement("a");
+      card.href = "/items/" + encodeURIComponent(item.c);
+      card.className =
+        "group flex flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900 hover:shadow-xl hover:shadow-black/50 backdrop-blur-sm";
+
+      var aliasHtml = item.a
+        ? '<p class="truncate text-xs text-zinc-400 mt-0.5">' + escapeHtml(item.a) + "</p>"
+        : "";
+
+      var noHtml =
+        item.no && item.no.length
+          ? '<p class="mt-1 truncate text-xs text-zinc-500">' +
+            item.no.map(escapeHtml).join("、") +
+            "</p>"
+          : "";
+
+      card.innerHTML =
+        '<div class="flex items-start gap-3">' +
+        '<img src="/logos/' +
+        encodeURIComponent(item.c) +
+        '.jpg" alt="' +
+        escapeHtml(item.n) +
+        '" class="h-11 w-11 shrink-0 rounded-lg border border-zinc-800 bg-zinc-950 object-cover" loading="lazy" onerror="this.style.display=\'none\'" />' +
+        '<div class="min-w-0 flex-1">' +
+        '<h3 class="truncate text-sm font-bold text-zinc-100 group-hover:text-white transition-colors">' +
+        escapeHtml(item.n) +
+        "</h3>" +
+        aliasHtml +
+        noHtml +
+        "</div>" +
+        getScoreBadgeHtml(item.s) +
+        "</div>" +
+        '<div class="mt-3 flex items-center justify-between border-t border-zinc-800/80 pt-2.5 text-[11px] text-zinc-400">' +
+        '<span class="rounded-md bg-zinc-950 px-2 py-0.5 border border-zinc-800/60 text-zinc-400">' + escapeHtml(item.o) + '</span>' +
+        '<span class="text-zinc-500">' + escapeHtml(item.ct) + '</span>' +
+        "</div>";
+
+      resultsContainer.appendChild(card);
+    }
+
+    displayedCount += remaining.length;
+    resultCount.textContent = "已顯示 " + displayedCount + " / 共 " + filtered.length + " 筆紀錄";
+    loadMoreBtn.style.display = displayedCount >= filtered.length ? "none" : "inline-block";
+  }
+
+  function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function updateURL() {
+    var params = new URLSearchParams();
+    var f = getFilters();
+    if (f.q) params.set("q", f.q);
+    if (f.c) params.set("c", f.c);
+    if (f.o) params.set("o", f.o);
+    if (f.score_min) params.set("score_min", f.score_min);
+    if (f.score_max) params.set("score_max", f.score_max);
+    var qs = params.toString();
+    history.replaceState(null, "", qs ? "?" + qs : window.location.pathname);
+  }
+
+  function loadFromURL() {
+    var params = new URLSearchParams(location.search);
+    if (params.has("q") && searchInput) searchInput.value = params.get("q");
+    if (params.has("c") && categorySelect) categorySelect.value = params.get("c");
+    if (params.has("o") && ownerSelect) ownerSelect.value = params.get("o");
+    if (params.has("score_min") && scoreMinInput) scoreMinInput.value = params.get("score_min");
+    if (params.has("score_max") && scoreMaxInput) scoreMaxInput.value = params.get("score_max");
+  }
+
+  if (searchInput) searchInput.addEventListener("input", applyFilters);
+  if (categorySelect) categorySelect.addEventListener("change", applyFilters);
+  if (ownerSelect) ownerSelect.addEventListener("change", applyFilters);
+  if (scoreMinInput) scoreMinInput.addEventListener("input", applyFilters);
+  if (scoreMaxInput) scoreMaxInput.addEventListener("input", applyFilters);
+  if (loadMoreBtn) loadMoreBtn.addEventListener("click", renderMore);
+  if (clearBtn)
+    clearBtn.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      if (categorySelect) categorySelect.value = "";
+      if (ownerSelect) ownerSelect.value = "";
+      if (scoreMinInput) scoreMinInput.value = "";
+      if (scoreMaxInput) scoreMaxInput.value = "";
+      applyFilters();
+    });
+
+  loadFromURL();
+  applyFilters();
+})();
+</script>
+
+

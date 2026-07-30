@@ -1,0 +1,158 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { user } from "@/lib/db/schema";
+import { count } from "drizzle-orm";
+
+const session = await auth.api.getSession({ headers: Astro.request.headers });
+if (session) {
+  return Astro.redirect("/admin");
+}
+
+let userCount = 0;
+try {
+  const result = await db.select({ value: count() }).from(user);
+  userCount = result[0]?.value ?? 0;
+} catch (e) {
+  userCount = 0;
+}
+
+const isFirstSetup = userCount === 0;
+---
+
+<Layout title={isFirstSetup ? "[FIRST_TIME_SETUP] — invade <taiwan>" : "[ADMIN_LOGIN] — invade <taiwan>"}>
+  <div class="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 font-mono">
+    <div class="w-full max-w-sm border border-zinc-800 bg-[#16161a] p-8 shadow-xl">
+      {isFirstSetup ? (
+        <>
+          <div class="mb-4 text-center">
+            <span class="inline-block border border-rose-800 bg-rose-950/60 px-2 py-0.5 text-[10px] text-rose-400 font-mono mb-2">
+              [SYSTEM_UNINITIALIZED]
+            </span>
+            <h1 class="text-lg font-bold tracking-tight text-zinc-100 font-mono">&gt; INITIAL_ADMIN_SETUP</h1>
+            <p class="mt-2 text-xs text-zinc-400 font-mono leading-relaxed">
+              檢測到系統尚無管理者。請建立首位管理員帳號：
+            </p>
+          </div>
+
+          <form id="login-form" method="POST" action="/api/auth/sign-up/email" class="space-y-3.5 font-mono">
+            <div>
+              <label for="name" class="block text-xs font-bold mb-1 text-zinc-400">&gt; NAME:</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                placeholder="管理員名稱"
+                class="w-full border border-zinc-800 bg-[#0e0e11] px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none font-mono"
+              />
+            </div>
+            <div>
+              <label for="email" class="block text-xs font-bold mb-1 text-zinc-400">&gt; EMAIL:</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                placeholder="admin@invade.tw"
+                class="w-full border border-zinc-800 bg-[#0e0e11] px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none font-mono"
+              />
+            </div>
+            <div>
+              <label for="password" class="block text-xs font-bold mb-1 text-zinc-400">&gt; PASSWORD:</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                placeholder="設定登入密碼"
+                class="w-full border border-zinc-800 bg-[#0e0e11] px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none font-mono"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full border border-emerald-800 bg-emerald-950/70 text-emerald-300 px-4 py-2.5 text-xs font-bold hover:border-emerald-600 hover:bg-emerald-900 transition-colors font-mono cursor-pointer mt-2"
+            >
+              [CREATE_INITIAL_ADMIN]
+            </button>
+            <p id="login-error" class="text-xs text-rose-400 text-center hidden font-mono mt-2"></p>
+          </form>
+        </>
+      ) : (
+        <>
+          <h1 class="text-xl font-bold tracking-tight text-center mb-1 text-zinc-100 font-mono">&gt; ADMIN_LOGIN</h1>
+          <p class="text-xs text-zinc-500 text-center mb-6 font-mono">[AUTHENTICATION_REQUIRED]</p>
+
+          <form id="login-form" method="POST" action="/api/auth/sign-in/email" class="space-y-4 font-mono">
+            <div>
+              <label for="email" class="block text-xs font-bold mb-1 text-zinc-400">&gt; EMAIL:</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                required
+                placeholder="admin@invade.tw"
+                class="w-full border border-zinc-800 bg-[#0e0e11] px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none font-mono"
+              />
+            </div>
+            <div>
+              <label for="password" class="block text-xs font-bold mb-1 text-zinc-400">&gt; PASSWORD:</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                required
+                placeholder="••••••••"
+                class="w-full border border-zinc-800 bg-[#0e0e11] px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-600 focus:outline-none font-mono"
+              />
+            </div>
+            <button
+              type="submit"
+              class="w-full border border-zinc-800 bg-[#0e0e11] text-zinc-200 px-4 py-2.5 text-xs font-bold hover:border-zinc-600 hover:bg-zinc-800 transition-colors font-mono cursor-pointer"
+            >
+              [EXECUTE_LOGIN]
+            </button>
+            <p id="login-error" class="text-xs text-rose-400 text-center hidden font-mono mt-2"></p>
+          </form>
+        </>
+      )}
+    </div>
+  </div>
+</Layout>
+
+
+<script>
+  document.getElementById("login-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    const errorEl = document.getElementById("login-error");
+    try {
+      const res = await fetch(form.action, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        window.location.href = "/admin";
+      } else {
+        const data = await res.json().catch(() => ({}));
+        if (errorEl) {
+          errorEl.textContent = data.message || data.error || "驗證失敗，請檢查輸入資料";
+          errorEl.classList.remove("hidden");
+        }
+      }
+    } catch {
+      if (errorEl) {
+        errorEl.textContent = "網路錯誤或伺服器無回應";
+        errorEl.classList.remove("hidden");
+      }
+    }
+  });
+</script>
+
+

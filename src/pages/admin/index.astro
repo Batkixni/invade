@@ -1,0 +1,41 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { auth } from "@/lib/auth";
+
+const session = await auth.api.getSession({ headers: Astro.request.headers });
+if (!session) {
+  return Astro.redirect("/admin/login");
+}
+---
+
+<Layout title="管理後台 - 笨他侵略">
+  <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+    <h1 class="text-3xl font-black tracking-tight mb-8">管理後台</h1>
+
+    <div class="mb-8 rounded-lg border border-border bg-card p-6">
+      <h2 class="text-lg font-semibold mb-2">使用者資訊</h2>
+      <p class="text-sm text-muted-foreground">Email: {session.user.email}</p>
+      {session.user.name && <p class="text-sm text-muted-foreground">名稱: {session.user.name}</p>}
+      <form method="POST" action="/api/auth/sign-out" class="mt-4">
+        <button type="submit" class="rounded-md bg-destructive text-destructive-foreground px-4 py-2 text-sm font-medium hover:bg-destructive/90 transition-colors">
+          登出
+        </button>
+      </form>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      <a href="/admin/items" class="rounded-lg border border-border bg-card p-6 hover:border-foreground/20 transition-colors">
+        <h3 class="text-lg font-semibold">項目管理</h3>
+        <p class="mt-1 text-sm text-muted-foreground">管理侵略資料項目</p>
+      </a>
+      <a href="/admin/vocabs" class="rounded-lg border border-border bg-card p-6 hover:border-foreground/20 transition-colors">
+        <h3 class="text-lg font-semibold">詞彙管理</h3>
+        <p class="mt-1 text-sm text-muted-foreground">管理詞彙資料</p>
+      </a>
+      <a href="/admin/news" class="rounded-lg border border-border bg-card p-6 hover:border-foreground/20 transition-colors">
+        <h3 class="text-lg font-semibold">新聞管理</h3>
+        <p class="mt-1 text-sm text-muted-foreground">管理官方新聞</p>
+      </a>
+    </div>
+  </div>
+</Layout>

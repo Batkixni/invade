@@ -1,0 +1,143 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { auth } from "@/lib/auth";
+
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
+
+const session = await auth.api.getSession({ headers: Astro.request.headers });
+if (!session) {
+  return Astro.redirect("/admin/login");
+}
+
+const slug = Astro.params.slug!;
+const isNew = slug === "new";
+
+let article = null;
+if (!isNew) {
+  const [result] = await db
+    .select()
+    .from(schema.news)
+    .where(eq(schema.news.slug, slug))
+    .limit(1);
+  article = result ?? null;
+  if (!article) {
+    return Astro.redirect("/admin/news");
+  }
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = formData.get("_action");
+
+  if (action === "delete" && !isNew) {
+    await db.delete(schema.news).where(eq(schema.news.slug, slug));
+    return Astro.redirect("/admin/news");
+  }
+
+  if (action === "save") {
+    const now = new Date().toISOString();
+    const date = formData.get("date") as string;
+    const title = formData.get("title") as string;
+    const summary = (formData.get("summary") as string) || "";
+    const content = (formData.get("content") as string) || "";
+
+    if (isNew) {
+      const newSlug = formData.get("slug") as string;
+      await db.insert(schema.news).values({
+        slug: newSlug,
+        date,
+        title,
+        summary,
+        content,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return Astro.redirect(`/admin/news/${newSlug}`);
+    } else {
+      await db
+        .update(schema.news)
+        .set({
+          date,
+          title,
+          summary,
+          content,
+          updatedAt: now,
+        })
+        .where(eq(schema.news.slug, slug));
+      return Astro.redirect(`/admin/news/${slug}`);
+    }
+  }
+}
+---
+
+<Layout title={isNew ? "新增新聞 - 管理後台 - 笨他侵略" : `編輯 ${article?.title} - 管理後台 - 笨他侵略`}>
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <a href="/admin/news" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+      &larr; 返回新聞列表
+    </a>
+
+    <h1 class="text-3xl font-black tracking-tight mt-4 mb-8">
+      {isNew ? "新增新聞" : `編輯新聞: ${article?.title}`}
+    </h1>
+
+    <form method="POST" class="space-y-6">
+      <input type="hidden" name="_action" value="save" />
+
+      {isNew && (
+        <div>
+          <label for="slug" class="block text-sm font-medium mb-1">Slug *</label>
+          <input type="text" id="slug" name="slug" required
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+      )}
+
+      <div>
+        <label for="date" class="block text-sm font-medium mb-1">日期 *</label>
+        <input type="date" id="date" name="date" required
+          value={article?.date ?? ""}
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </div>
+
+      <div>
+        <label for="title" class="block text-sm font-medium mb-1">標題 *</label>
+        <input type="text" id="title" name="title" required
+          value={article?.title ?? ""}
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </div>
+
+      <div>
+        <label for="summary" class="block text-sm font-medium mb-1">摘要</label>
+        <textarea id="summary" name="summary" rows="3"
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >{article?.summary ?? ""}</textarea>
+      </div>
+
+      <div>
+        <label for="content" class="block text-sm font-medium mb-1">內容</label>
+        <textarea id="content" name="content" rows="15"
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-mono"
+        >{article?.content ?? ""}</textarea>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button type="submit"
+          class="rounded-md bg-foreground text-background px-6 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
+        >
+          {isNew ? "建立" : "儲存"}
+        </button>
+        {!isNew && (
+          <button type="submit" name="_action" value="delete"
+            class="rounded-md border border-destructive text-destructive px-6 py-2 text-sm font-medium hover:bg-destructive/10 transition-colors"
+            onclick="return confirm('確定刪除?')"
+          >
+            刪除
+          </button>
+        )}
+      </div>
+    </form>
+  </div>
+</Layout>

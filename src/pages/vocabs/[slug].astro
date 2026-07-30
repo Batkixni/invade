@@ -1,0 +1,147 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import ScoreBadge from "@/components/ui/ScoreBadge";
+import { getAllVocabs } from "@/lib/db/queries";
+import type { VocabWithExamples } from "@/lib/db/queries";
+
+export const prerender = true;
+
+export async function getStaticPaths() {
+  const vocabs = await getAllVocabs();
+  return vocabs.map((v) => ({
+    params: { slug: v.word },
+    props: { vocab: v },
+  }));
+}
+
+const { vocab } = Astro.props as { vocab: VocabWithExamples };
+
+function getBopomofoPairs(word: string, bopomofo: string | null): { char: string; bopomofo: string }[] {
+  if (!bopomofo) return [];
+  const chars = [...word];
+  const parts = bopomofo.split(/\s+/);
+  if (chars.length === parts.length) {
+    return chars.map((char, i) => ({ char, bopomofo: parts[i] }));
+  }
+  return chars.map((char, i) => ({ char, bopomofo: parts[i] || "" }));
+}
+
+const bopomofoPairs = getBopomofoPairs(vocab.word, vocab.bopomofo);
+
+function renderMarkdown(text: string): string {
+  if (!text) return "";
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const withInline = escaped
+    .replace(/\*\*(.+?)\*\*/g, "<strong class='text-zinc-100 font-bold'>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em class='text-zinc-300'>$1</em>")
+    .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline text-rose-400 hover:text-rose-300 transition-colors">$1</a>');
+  const paragraphs = withInline
+    .split(/\n\s*\n/)
+    .map((p) => `<p class="mb-4 leading-relaxed">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+  return paragraphs;
+}
+---
+
+<Layout
+  title={`「${vocab.word}」詞彙說明 — 笨他侵略`}
+  description={vocab.description?.slice(0, 200) || `${vocab.word} 詞彙資訊`}
+>
+  <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="flex flex-col gap-8">
+      <!-- Header -->
+      <div class="border-b border-zinc-800/80 pb-6">
+        <h1 class="text-4xl font-black tracking-tight text-zinc-100 sm:text-5xl">{vocab.word}</h1>
+
+        <!-- Bopomofo breakdown -->
+        {bopomofoPairs.length > 0 && (
+          <div class="mt-5 flex flex-wrap items-end gap-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+            {bopomofoPairs.map((pair) => (
+              <div class="flex flex-col items-center">
+                <span class="text-xs font-mono font-medium text-rose-400">{pair.bopomofo}</span>
+                <span class="text-3xl font-bold text-zinc-100">{pair.char}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div class="mt-5 flex flex-wrap items-center gap-3">
+          <span class="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 font-mono text-xs font-semibold text-zinc-300">
+            {vocab.category}
+          </span>
+          {vocab.explicit && (
+            <span class="rounded-full border border-rose-800/60 bg-rose-950/80 px-3 py-1 font-mono text-xs font-semibold text-rose-400">
+              {vocab.explicit}
+            </span>
+          )}
+          {vocab.score > 0 && (
+            <ScoreBadge score={vocab.score} size="md" />
+          )}
+        </div>
+      </div>
+
+      <!-- Deprecation -->
+      {vocab.deprecation && (
+        <div class="rounded-2xl border border-rose-800/80 bg-rose-950/40 p-5 backdrop-blur-md">
+          <p class="text-sm font-bold text-rose-400 flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></span>
+            ⚠ 建議停用使用
+          </p>
+          <p class="mt-2 text-sm text-rose-200 leading-relaxed">{vocab.deprecation}</p>
+        </div>
+      )}
+
+      <!-- Description -->
+      {vocab.description && (
+        <section class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+          <h2 class="mb-3 text-base font-bold uppercase tracking-wider text-zinc-300">詞彙釋義與由來</h2>
+          <div class="text-sm text-zinc-300 leading-relaxed" set:html={renderMarkdown(vocab.description)} />
+        </section>
+      )}
+
+      <!-- Notice -->
+      {vocab.notice && (
+        <section class="rounded-2xl border border-amber-800/60 bg-amber-950/40 p-5">
+          <h2 class="mb-2 text-xs font-mono font-bold uppercase tracking-wider text-amber-400">注意事項</h2>
+          <p class="text-sm text-amber-200 leading-relaxed">{vocab.notice}</p>
+        </section>
+      )}
+
+      <!-- Examples -->
+      {vocab.examples.length > 0 && (
+        <section>
+          <h2 class="mb-4 text-lg font-bold text-zinc-100">用語對比與說明</h2>
+          <div class="space-y-4">
+            {vocab.examples.map((ex) => (
+              <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+                {ex.description && (
+                  <p class="mb-3 text-xs text-zinc-400 leading-relaxed">{ex.description}</p>
+                )}
+                <div class="space-y-3">
+                  <div class="rounded-xl border border-emerald-800/60 bg-emerald-950/40 p-3.5">
+                    <p class="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                      <span>✓ 建議推薦用語</span>
+                    </p>
+                    <p class="mt-1 text-sm font-semibold text-emerald-100">{ex.correct}</p>
+                  </div>
+                  {ex.incorrect && (
+                    <div class="rounded-xl border border-rose-800/60 bg-rose-950/40 p-3.5">
+                      <p class="text-xs font-mono font-bold text-rose-400 flex items-center gap-1.5">
+                        <span>✗ 避免使用之審查/侵略用語</span>
+                      </p>
+                      <p class="mt-1 text-sm text-rose-200">{ex.incorrect}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  </div>
+</Layout>
+

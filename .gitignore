@@ -1,8 +1,36 @@
-*
-!/**/
-!*.*
-!LICENSE
-.github
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# node_modules
+node_modules/
+dist/
+dist-ssr/
+cmd/
+*.local
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Astro
+.astro/
+
+# Typescript
+*.tsbuildinfo
+
+# Project specific (retained from old gitignore)
 build.exe
-cmd/mcp-server/invade-mcp-server
-cmd/mcp-server/invade-mcp-server.exe
+.github/

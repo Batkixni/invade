@@ -1,0 +1,71 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { auth } from "@/lib/auth";
+import { getAllNews } from "@/lib/db/queries";
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { formatDate } from "@/lib/utils";
+
+const session = await auth.api.getSession({ headers: Astro.request.headers });
+if (!session) {
+  return Astro.redirect("/admin/login");
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = formData.get("_action");
+
+  if (action === "delete") {
+    const slug = formData.get("slug") as string;
+    await db.delete(schema.news).where(eq(schema.news.slug, slug));
+    return Astro.redirect("/admin/news");
+  }
+}
+
+const allNews = await getAllNews();
+---
+
+<Layout title="新聞管理 - 管理後台 - 笨他侵略">
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-3xl font-black tracking-tight">新聞管理</h1>
+      <a href="/admin/news/new" class="rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors">
+        新增新聞
+      </a>
+    </div>
+
+    <div class="overflow-x-auto rounded-lg border border-border">
+      <table class="w-full text-sm">
+        <thead class="bg-muted">
+          <tr>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground">日期</th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground">標題</th>
+            <th class="px-4 py-3 text-left font-medium text-muted-foreground">Slug</th>
+            <th class="px-4 py-3 text-right font-medium text-muted-foreground">操作</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {allNews.map((article) => (
+            <tr class="hover:bg-muted/50 transition-colors">
+              <td class="px-4 py-3 text-muted-foreground whitespace-nowrap">{formatDate(article.date)}</td>
+              <td class="px-4 py-3 font-medium">{article.title}</td>
+              <td class="px-4 py-3 font-mono text-xs text-muted-foreground">{article.slug}</td>
+              <td class="px-4 py-3 text-right space-x-2">
+                <a href={`/admin/news/${article.slug}`} class="text-invade-600 hover:text-invade-700 transition-colors">
+                  編輯
+                </a>
+                <form method="POST" class="inline">
+                  <input type="hidden" name="_action" value="delete" />
+                  <input type="hidden" name="slug" value={article.slug} />
+                  <button type="submit" class="text-destructive hover:text-destructive/80 transition-colors" onclick="return confirm('確定刪除?')">
+                    刪除
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</Layout>

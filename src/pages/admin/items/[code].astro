@@ -1,0 +1,310 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import { auth } from "@/lib/auth";
+
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { getItemByCode } from "@/lib/db/queries";
+
+const session = await auth.api.getSession({ headers: Astro.request.headers });
+if (!session) {
+  return Astro.redirect("/admin/login");
+}
+
+const code = Astro.params.code!;
+const isNew = code === "new";
+
+let item = null;
+if (!isNew) {
+  item = await getItemByCode(code);
+  if (!item) {
+    return Astro.redirect("/admin/items");
+  }
+}
+
+if (Astro.request.method === "POST") {
+  const formData = await Astro.request.formData();
+  const action = formData.get("_action");
+
+  if (action === "delete" && !isNew) {
+    await db.delete(schema.items).where(eq(schema.items.code, code));
+    return Astro.redirect("/admin/items");
+  }
+
+  if (action === "save") {
+    const now = new Date().toISOString();
+    const name = formData.get("name") as string;
+    const nameAlias = (formData.get("name_alias") as string) || null;
+    const website = (formData.get("website") as string) || null;
+    const description = (formData.get("description") as string) || "";
+    const type = (formData.get("type") as string) || "COMPANY";
+    const category = (formData.get("category") as string) || "INTERNET";
+    const owner = (formData.get("owner") as string) || "CHINESE";
+    const score = parseInt(formData.get("score") as string) || 0;
+
+    if (isNew) {
+      const newCode = formData.get("code") as string;
+      await db.insert(schema.items).values({
+        code: newCode,
+        parentCode: null,
+        name,
+        nameAlias,
+        website,
+        description,
+        type,
+        category,
+        owner,
+        score,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return Astro.redirect(`/admin/items/${newCode}`);
+    } else {
+      await db
+        .update(schema.items)
+        .set({
+          name,
+          nameAlias,
+          website,
+          description,
+          type,
+          category,
+          owner,
+          score,
+          updatedAt: now,
+        })
+        .where(eq(schema.items.code, code));
+      return Astro.redirect(`/admin/items/${code}`);
+    }
+  }
+
+  if (action === "add_name_other" && !isNew) {
+    const nameOther = formData.get("name_other") as string;
+    if (nameOther) {
+      await db.insert(schema.itemNameOthers).values({
+        itemCode: code,
+        name: nameOther,
+      });
+    }
+    return Astro.redirect(`/admin/items/${code}`);
+  }
+
+  if (action === "delete_name_other" && !isNew) {
+    const id = parseInt(formData.get("id") as string);
+    await db.delete(schema.itemNameOthers).where(eq(schema.itemNameOthers.id, id));
+    return Astro.redirect(`/admin/items/${code}`);
+  }
+
+  if (action === "add_information" && !isNew) {
+    const year = (formData.get("info_year") as string) || null;
+    const infoDescription = (formData.get("info_description") as string) || "";
+    const infoScore = parseInt(formData.get("info_score") as string) || 0;
+    await db.insert(schema.itemInformation).values({
+      itemCode: code,
+      year,
+      description: infoDescription,
+      score: infoScore,
+    });
+    return Astro.redirect(`/admin/items/${code}`);
+  }
+
+  if (action === "delete_information" && !isNew) {
+    const id = parseInt(formData.get("id") as string);
+    await db.delete(schema.itemInformation).where(eq(schema.itemInformation.id, id));
+    return Astro.redirect(`/admin/items/${code}`);
+  }
+}
+---
+
+<Layout title={isNew ? "新增項目 - 管理後台 - 笨他侵略" : `編輯 ${item?.name} - 管理後台 - 笨他侵略`}>
+  <div class="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <a href="/admin/items" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
+      &larr; 返回項目列表
+    </a>
+
+    <h1 class="text-3xl font-black tracking-tight mt-4 mb-8">
+      {isNew ? "新增項目" : `編輯項目: ${item?.name}`}
+    </h1>
+
+    <form method="POST" class="space-y-6">
+      <input type="hidden" name="_action" value="save" />
+
+      {isNew && (
+        <div>
+          <label for="code" class="block text-sm font-medium mb-1">Code *</label>
+          <input
+            type="text" id="code" name="code" required
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+      )}
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label for="name" class="block text-sm font-medium mb-1">名稱 *</label>
+          <input type="text" id="name" name="name" required
+            value={item?.name ?? ""}
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+        <div>
+          <label for="name_alias" class="block text-sm font-medium mb-1">別名</label>
+          <input type="text" id="name_alias" name="name_alias"
+            value={item?.nameAlias ?? ""}
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label for="website" class="block text-sm font-medium mb-1">網站</label>
+        <input type="url" id="website" name="website"
+          value={item?.website ?? ""}
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </div>
+
+      <div>
+        <label for="description" class="block text-sm font-medium mb-1">描述</label>
+        <textarea id="description" name="description" rows="4"
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >{item?.description ?? ""}</textarea>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-4">
+        <div>
+          <label for="type" class="block text-sm font-medium mb-1">類型</label>
+          <select id="type" name="type"
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="COMPANY" selected={item?.type === "COMPANY"}>COMPANY</option>
+            <option value="PERSON" selected={item?.type === "PERSON"}>PERSON</option>
+            <option value="ORGANIZATION" selected={item?.type === "ORGANIZATION"}>ORGANIZATION</option>
+          </select>
+        </div>
+        <div>
+          <label for="category" class="block text-sm font-medium mb-1">分類</label>
+          <select id="category" name="category"
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="INTERNET" selected={item?.category === "INTERNET"}>INTERNET</option>
+            <option value="BIG_TECH" selected={item?.category === "BIG_TECH"}>BIG_TECH</option>
+            <option value="INSTITUTION" selected={item?.category === "INSTITUTION"}>INSTITUTION</option>
+            <option value="MILITARY" selected={item?.category === "MILITARY"}>MILITARY</option>
+          </select>
+        </div>
+        <div>
+          <label for="owner" class="block text-sm font-medium mb-1">所有者</label>
+          <select id="owner" name="owner"
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="CHINESE" selected={item?.owner === "CHINESE"}>CHINESE</option>
+            <option value="TAIWANESE" selected={item?.owner === "TAIWANESE"}>TAIWANESE</option>
+          </select>
+        </div>
+        <div>
+          <label for="score" class="block text-sm font-medium mb-1">分數</label>
+          <input type="number" id="score" name="score" min="0" max="10"
+            value={item?.score ?? 0}
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button type="submit"
+          class="rounded-md bg-foreground text-background px-6 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
+        >
+          {isNew ? "建立" : "儲存"}
+        </button>
+        {!isNew && (
+          <button type="submit" name="_action" value="delete"
+            class="rounded-md border border-destructive text-destructive px-6 py-2 text-sm font-medium hover:bg-destructive/10 transition-colors"
+            onclick="return confirm('確定刪除?')"
+          >
+            刪除
+          </button>
+        )}
+      </div>
+    </form>
+
+    {!isNew && item && (
+      <>
+        <section class="mt-12">
+          <h2 class="text-xl font-bold mb-4">其他名稱</h2>
+          {item.nameOthers.length > 0 && (
+            <ul class="space-y-2 mb-4">
+              {item.nameOthers.map((no) => (
+                <li class="flex items-center justify-between rounded-md border border-border px-4 py-2">
+                  <span class="text-sm">{no.name}</span>
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="_action" value="delete_name_other" />
+                    <input type="hidden" name="id" value={no.id} />
+                    <button type="submit" class="text-xs text-destructive hover:text-destructive/80 transition-colors">移除</button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form method="POST" class="flex items-center gap-2">
+            <input type="hidden" name="_action" value="add_name_other" />
+            <input type="text" name="name_other" placeholder="輸入其他名稱"
+              class="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <button type="submit"
+              class="rounded-md bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
+            >新增</button>
+          </form>
+        </section>
+
+        <section class="mt-12">
+          <h2 class="text-xl font-bold mb-4">資訊記錄</h2>
+          {item.information.length > 0 && (
+            <div class="space-y-3 mb-4">
+              {item.information.map((info) => (
+                <div class="flex items-start justify-between rounded-md border border-border px-4 py-3">
+                  <div class="text-sm">
+                    {info.year && <span class="font-mono text-xs text-muted-foreground">[{info.year}] </span>}
+                    {info.description}
+                    <span class="ml-2 text-xs text-muted-foreground">(分數: {info.score})</span>
+                  </div>
+                  <form method="POST" class="inline ml-2 shrink-0">
+                    <input type="hidden" name="_action" value="delete_information" />
+                    <input type="hidden" name="id" value={info.id} />
+                    <button type="submit" class="text-xs text-destructive hover:text-destructive/80 transition-colors">移除</button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          )}
+          <form method="POST" class="space-y-2 rounded-md border border-border p-4">
+            <input type="hidden" name="_action" value="add_information" />
+            <div class="grid gap-2 sm:grid-cols-3">
+              <div>
+                <label class="block text-xs font-medium mb-1">年份</label>
+                <input type="text" name="info_year" placeholder="e.g. 2024"
+                  class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium mb-1">分數</label>
+                <input type="number" name="info_score" min="0" max="10" value="0"
+                  class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1">描述</label>
+              <input type="text" name="info_description"
+                class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+            <button type="submit"
+              class="rounded-md bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium hover:bg-secondary/80 transition-colors"
+            >新增記錄</button>
+          </form>
+        </section>
+      </>
+    )}
+  </div>
+</Layout>
